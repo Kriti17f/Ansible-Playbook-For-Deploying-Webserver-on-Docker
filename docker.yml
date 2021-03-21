@@ -1,0 +1,81 @@
+- hosts: all
+  tasks:
+          - file:
+                  state: directory
+                  path: "/dvd1"
+
+          - mount:
+                  src: "/dev/cdrom"
+                  path: "/dvd1"
+                  state: mounted
+                  fstype: "iso9660"
+
+          - yum_repository:
+                  baseurl: "/dvd1/AppStream"
+                  name: "mydvd1"
+                  description: "yum dvd1 for installing packages"
+                  gpgcheck: no
+
+          - yum_repository:
+                  baseurl: "/dvd1/BaseOS"
+                  name: "mydvd2"
+                  description: "yum dvd2"
+                  gpgcheck: no
+
+          - name: "Docker repository"
+            yum_repository:
+                  name: docker
+                  description: "yum repo for docker" 
+                  baseurl: https://download.docker.com/linux/centos/7/x86_64/stable
+                  gpgcheck: no
+                  enabled: true
+
+          - name: "Installing python"
+            package:
+                    name: python3
+                    state: present
+
+          - name: "Installing docker module for python"
+            shell: "pip3 install docker-py"
+          
+          - name: "Installing Docker"
+            command: "yum install docker-ce --nobest -y --skip-broken"
+
+          - name: "Starting docker service"
+            service:
+                name: "docker"
+                state: started
+                enabled: yes
+
+          - name: "Creating directory"
+            file:
+                    path: /root/ansible
+                    state: directory
+
+          - name: "Creating html file"
+            copy:
+                    src: "index.html"
+                    dest: /root/ansible/
+
+          - name: "pulling image"
+            docker_image:
+                    name: httpd
+                    source: pull
+
+          - name: "Creating Docker Container"
+            docker_container:
+                    name: web_container
+                    image: httpd
+                    state: started
+                    exposed_ports:
+                            - 80
+                    ports:
+                            - 8080:80
+                    volumes:
+                            - /root/ansible/:/usr/local/apache2/htdocs/
+
+                  
+          - name: Stopping Firewalld
+            service:
+                    name: firewalld
+                    state: stopped        
